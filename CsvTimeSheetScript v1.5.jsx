@@ -158,14 +158,9 @@ function importCsv(csvFile)
     }
    app.settings.saveSetting(scriptName, "myPath", timeSheetFile.fullName);
 
-   timeSheetFile.encoding = "Unicode";
-    timeSheetFile.open("r");
-    var sheetText = new Array();
-    sheetText = timeSheetFile.read();
-    timeSheetFile.close();
-    //读取文件
 
-    //转化为二维数组
+
+    //转化为二维数组的方法定义
     function sheetToArray(sheetText){
         
     var rrr = new RegExp('"', "g");
@@ -178,17 +173,72 @@ function importCsv(csvFile)
     return b;
     }
     
-    mySheetArray = sheetToArray(sheetText);//得到数组
+
+        
+
     AnimetionlistItemArray = [];//清空选项数组
     keyAnimetionlistItemArray = [];
     myList.removeAll();//清空UI选项
         
-    
+    var sheetText = new Array();
  
-    var AnimetionIndex ;
-    for(var i = 0;i<mySheetArray[0].length;i++){
-        if(mySheetArray[0][i] == "动画"){AnimetionIndex = i;break;}
+    var AnimetionIndex;
+    var keyAnimetionIndex;
+    
+    
+    //一些常见编码库
+    var encodingType = new Array("Default","UTF-8","CP932","CP936","CP950","EUC-JP");
+
+    for (var encodingTypeIndex = 0; encodingTypeIndex < encodingType.length; encodingTypeIndex++)
+    {
+        if (!File.isEncodingAvailable(encodingType[encodingTypeIndex]) && encodingType[encodingTypeIndex] != "Default") continue;//如果不支持这个编码则跳过
+        timeSheetFile.encoding = encodingType[encodingTypeIndex];
+        var isOpended = timeSheetFile.open("r");
+        sheetText = timeSheetFile.read();
+        timeSheetFile.close();
+
+        if( !isOpended)continue;//如果文件打开失败则跳过
+        //读取文件
+        var sheetTextString = File.decode(sheetText);
+        mySheetArray = sheetToArray(sheetText);//得到数组
+        if (mySheetArray.length == 0) continue;//如果分析数组失败则跳过
+
+
+        //寻找关键字
+        for (var wordIndex = 0; wordIndex < mySheetArray[0].length; wordIndex++)
+            {
+            if (mySheetArray[0][wordIndex] == "动画" ||
+                mySheetArray[0][wordIndex] == "動畫" ||
+                mySheetArray[0][wordIndex] == "動画" ||
+                mySheetArray[0][wordIndex] == "中割" ||
+                mySheetArray[0][wordIndex] == "上色" ||
+                mySheetArray[0][wordIndex] == "中割り" ||
+                mySheetArray[0][wordIndex] == "仕上げ"
+        
+            ) { AnimetionIndex = wordIndex; break; }
+            }
+            
+        for(var wordIndex = 0;wordIndex<mySheetArray[0].length;wordIndex++)
+        {
+            if (mySheetArray[0][wordIndex] == "原画" ||
+                mySheetArray[0][wordIndex] == "原畫" ||
+                mySheetArray[0][wordIndex] == "原画")
+            { keyAnimetionIndex = wordIndex; break; }
         }
+        //如果找到其中一个则退出，否则换个编码试着找
+        if (AnimetionIndex != undefined || keyAnimetionIndex != undefined) {
+            break;
+        }
+
+    }
+
+
+        
+    
+    
+        
+
+
     if(AnimetionIndex == undefined){AnimetionIndex = mySheetArray[0].length+1;}
     else
     {
@@ -235,11 +285,6 @@ function importCsv(csvFile)
     }    
         
 
-    var keyAnimetionIndex ;
-    for(var i = 0;i<mySheetArray[0].length;i++)
-        {
-        if(mySheetArray[0][i] == "原画"){keyAnimetionIndex = i;break;}
-        }
     if(keyAnimetionIndex == undefined){keyAnimetionIndex =0;}
     else
     {
